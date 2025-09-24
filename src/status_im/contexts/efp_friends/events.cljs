@@ -90,8 +90,16 @@
 
 (rf/reg-event-fx
  :efpfriends/ens-resolution-complete
- (fn [{:keys [db]} [addresses]]
-   (log/info "ENS resolution complete for addresses:" (count addresses))
+ (fn [{:keys [db]} [enriched-addresses]]
+   (log/info "ENS resolution complete for addresses:" (count enriched-addresses))
    ;; TODO: Implement ENS resolution completion in Phase 3
    ;; For now, just log completion
+   {:db db}))
+
+(rf/reg-event-fx
+ :efpfriends/ens-resolution-error
+ (fn [{:keys [db]} [error]]
+   (log/error "ENS resolution failed:" error)
+   ;; TODO: Handle ENS resolution errors in Phase 3
+   ;; For now, just log error
    {:db db}))
