@@ -27,6 +27,7 @@
     status-im.subs.wallet.swap
     status-im.subs.wallet.wallet
     status-im.ui.market.subs
+    status-im.contexts.efp-friends.subs
     [utils.re-frame :as rf]))
 
 ;;view
@@ -167,6 +168,9 @@
 
 ;;wallet
 (rf/reg-root-key-sub :wallet :wallet)
+
+;;efp-friends
+(rf/reg-root-key-sub :efp-friends :efp-friends)
 
 ;;wallet-connect
 (rf/reg-root-key-sub :wallet-connect/web3-wallet :wallet-connect/web3-wallet)

@@ -61,6 +61,8 @@
     status-im.contexts.wallet.signals
     status-im.contexts.wallet.swap.events
     status-im.contexts.wallet.wallet-connect.events.core
+    status-im.contexts.efp-friends.events
+    status-im.contexts.efp-friends.effects
     [status-im.db :as db]
     status-im.domain.market.events
     status-im.gateway.events

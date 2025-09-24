@@ -4,7 +4,8 @@
     [react-native.core :as rn]
     [status-im.config :as config]
     [status-im.contexts.shell.activity-center.events :as activity-center]
-    [status-im.contexts.wallet.db :as wallet]))
+    [status-im.contexts.wallet.db :as wallet]
+    [status-im.contexts.efp-friends.db :as efp-friends]))
 
 ;; initial state of app-db
 (def app-db
@@ -22,6 +23,7 @@
    :link-previews-whitelist            []
    :app-state                          "active"
    :wallet                             wallet/defaults
+   :efp-friends                        efp-friends/efp-friends-defaults
    :peer-stats/count                   0
    :node-info                          {}
    :peers-summary                      []
