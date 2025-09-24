@@ -87,3 +87,11 @@
    (let [user-address (get-in db [:efp-friends :user-address])]
      (when user-address
        {:fx [[:dispatch [:efpfriends/fetch-following user-address {:fresh? true}]]]}))))
+
+(rf/reg-event-fx
+ :efpfriends/ens-resolution-complete
+ (fn [{:keys [db]} [addresses]]
+   (log/info "ENS resolution complete for addresses:" (count addresses))
+   ;; TODO: Implement ENS resolution completion in Phase 3
+   ;; For now, just log completion
+   {:db db}))

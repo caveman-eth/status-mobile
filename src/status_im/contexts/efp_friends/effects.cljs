@@ -59,14 +59,6 @@
                               :type :network-error}])))))
 
 (rf/reg-fx
- :efp-api/get-following
- (fn [user-address]
-   (log/info "EFP API: Fetching following for address:" user-address)
-   (let [api-url (build-efp-following-url user-address {:limit 50 :sort "followers"})]
-     (log/debug "EFP API URL:" api-url)
-     (make-efp-api-call api-url))))
-
-(rf/reg-fx
  :efp-api/get-following-with-options
  (fn [[user-address options]]
    (log/info "EFP API: Fetching following with options:" user-address options)
