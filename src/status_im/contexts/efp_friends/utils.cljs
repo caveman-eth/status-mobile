@@ -62,11 +62,43 @@
 (defn transform-efp-api-response
   "Transform raw EFP API response to internal format"
   [api-response]
-  ;; TODO: Implement actual EFP API response transformation in F2.2
-  ;; For now, assume api-response is already an array of addresses
-  (-> api-response
-      filter-valid-addresses
-      dedupe-addresses))
+  ;; Extract addresses from EFP API response structure
+  ;; EFP API returns: {"following": [{"record_type": "address", "data": "0x123...", "tags": ["efp"]}]}
+  (let [following-records (get api-response "following" [])]
+    (->> following-records
+         (filter #(= (get % "record_type") "address")) ; Only address records
+         (map #(get % "data"))                         ; Extract the address
+         (filter some?)                                ; Remove nil values
+         filter-valid-addresses                        ; Validate addresses
+         dedupe-addresses)))                           ; Remove duplicates
+
+(defn extract-efp-tags
+  "Extract tags from EFP following record"
+  [efp-record]
+  (get efp-record "tags" []))
+
+(defn efp-record->friend-data
+  "Convert EFP following record to friend data structure"
+  [efp-record]
+  (when (= (get efp-record "record_type") "address")
+    (let [address (get efp-record "data")
+          tags (extract-efp-tags efp-record)]
+      {:address             address
+       :ens-name           nil ; Will be enriched in Phase 3
+       :display-name       (format-address-short address)
+       :profile-photo      nil ; Will be enriched in Phase 3
+       :customization-color :blue
+       :recipient-type     :efp-friend
+       :efp-tags          tags})))
+
+(defn build-efp-api-url
+  "Build EFP API URL with parameters"
+  [base-url path params]
+  (let [param-strings (for [[k v] params :when v]
+                        (str (name k) "=" (if (keyword? v) (name v) v)))
+        query-string (when (seq param-strings) 
+                       (str "?" (string/join "&" param-strings)))]
+    (str base-url path (or query-string ""))))
 
 ;; Future utility functions:
 ;; - ENS batch resolution helpers

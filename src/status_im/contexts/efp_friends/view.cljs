@@ -49,11 +49,19 @@
 (defn error-state
   "Error state when EFP API fails"
   [theme error]
-  [quo/empty-state
-   {:title           (i18n/label :t/efp-connection-error)
-    :description     (i18n/label :t/efp-unable-to-load-friends) 
-    :image           (resources/get-themed-image :no-network theme)
-    :container-style style/empty-container-style}])
+  (let [error-title (case (:type error)
+                      :network-error "Network Error"
+                      "EFP Connection Error")
+        error-desc (if (:message error)
+                     (:message error)
+                     "Unable to load EFP friends. Please check your connection and try again.")]
+    [quo/empty-state
+     {:title           error-title
+      :description     error-desc
+      :image           (resources/get-themed-image :no-network theme)
+      :container-style style/empty-container-style
+      :button          {:text "Retry"
+                        :on-press #(rf/dispatch [:efpfriends/force-refresh])}}]))
 
 (defn empty-state
   "Empty state when user has no EFP friends"

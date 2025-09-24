@@ -1,25 +1,78 @@
 (ns status-im.contexts.efp-friends.effects
   (:require
+    [clojure.string :as string]
     [re-frame.core :as rf]
-    [taoensso.timbre :as log]))
+    [taoensso.timbre :as log]
+    [utils.transforms :as transforms]))
 
 ;; EFP Friends Effects
-;; Handles external EFP API integration (placeholder for Phase 2.2)
+;; Handles external EFP API integration using the EFP API
+;; API Documentation: https://ethidentitykit.com/docs/api/users/following
+
+(def ^:const efp-api-base-url "https://api.ethfollow.xyz/api/v1")
+
+(defn- build-efp-following-url
+  "Build EFP API URL for getting user's following list"
+  [user-address {:keys [limit offset sort cache] :or {limit 50 sort "latest"}}]
+  (let [base-url (str efp-api-base-url "/users/" user-address "/following")
+        params (cond-> []
+                 limit (conj (str "limit=" limit))
+                 offset (conj (str "offset=" offset))
+                 sort (conj (str "sort=" sort))
+                 cache (conj (str "cache=" cache)))]
+    (if (seq params)
+      (str base-url "?" (string/join "&" params))
+      base-url)))
+
+(defn- extract-addresses-from-efp-response
+  "Extract addresses from EFP API response"
+  [efp-response]
+  (try
+    (let [following-records (get efp-response "following" [])]
+      (->> following-records
+           (filter #(= (get % "record_type") "address")) ; Only address records
+           (map #(get % "data"))                         ; Extract the address
+           (filter some?)                                ; Remove nil values
+           vec))
+    (catch js/Error e
+      (log/error "Failed to extract addresses from EFP response:" e)
+      [])))
+
+(defn- make-efp-api-call
+  "Make HTTP call to EFP API and handle response"
+  [api-url]
+  (-> (js/fetch api-url)
+      (.then (fn [response]
+               (if (.-ok response)
+                 (.json response)
+                 (js/Promise.reject 
+                  (js/Error. (str "HTTP " (.-status response) ": " (.-statusText response)))))))
+      (.then (fn [json-response]
+               (let [js-response (transforms/js->clj json-response)
+                     addresses (extract-addresses-from-efp-response js-response)]
+                 (log/info "EFP API: Successfully fetched" (count addresses) "following addresses")
+                 (rf/dispatch [:efpfriends/following-success addresses]))))
+      (.catch (fn [error]
+                (log/error "EFP API: Failed to fetch following:" (.-message error))
+                (rf/dispatch [:efpfriends/following-error 
+                             {:message (.-message error)
+                              :type :network-error}])))))
 
 (rf/reg-fx
  :efp-api/get-following
  (fn [user-address]
    (log/info "EFP API: Fetching following for address:" user-address)
-   
-   ;; TODO: Implement actual EFP API call in F2.2
-   ;; For now, simulate API response with mock data
-   (js/setTimeout
-    (fn []
-      (let [mock-addresses ["0x1234567890abcdef1234567890abcdef12345678"
-                           "0xabcdef1234567890abcdef1234567890abcdef12"
-                           "0x9876543210fedcba9876543210fedcba98765432"]]
-        (rf/dispatch [:efpfriends/following-success mock-addresses])))
-    1500))) ; Simulate 1.5s API delay
+   (let [api-url (build-efp-following-url user-address {:limit 50 :sort "followers"})]
+     (log/debug "EFP API URL:" api-url)
+     (make-efp-api-call api-url))))
+
+(rf/reg-fx
+ :efp-api/get-following-with-options
+ (fn [[user-address options]]
+   (log/info "EFP API: Fetching following with options:" user-address options)
+   (let [api-url (build-efp-following-url user-address options)]
+     (log/debug "EFP API URL:" api-url)
+     (make-efp-api-call api-url))))
 
 (rf/reg-fx
  :efp-api/resolve-ens

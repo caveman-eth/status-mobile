@@ -14,13 +14,16 @@
 
 (rf/reg-event-fx
  :efpfriends/fetch-following
- (fn [{:keys [db]} [user-address]]
-   (log/info "Fetching EFP following for address:" user-address)
-   {:db (-> db
-            (assoc-in [:efp-friends :loading?] true)
-            (assoc-in [:efp-friends :user-address] user-address)
-            (assoc-in [:efp-friends :error] nil))
-    :fx [[:efp-api/get-following user-address]]}))
+ (fn [{:keys [db]} [user-address & [{:keys [limit offset fresh?] :as options}]]]
+   (log/info "Fetching EFP following for address:" user-address "options:" options)
+   (let [api-options (cond-> {:limit (or limit 50) :sort "followers"}
+                       offset (assoc :offset offset)
+                       fresh? (assoc :cache "fresh"))]
+     {:db (-> db
+              (assoc-in [:efp-friends :loading?] true)
+              (assoc-in [:efp-friends :user-address] user-address)
+              (assoc-in [:efp-friends :error] nil))
+      :fx [[:efp-api/get-following-with-options [user-address api-options]]]})))
 
 (rf/reg-event-fx
  :efpfriends/following-success
@@ -77,3 +80,10 @@
      (let [user-address (get-in db [:efp-friends :user-address])]
        (when user-address
          {:fx [[:dispatch [:efpfriends/fetch-following user-address]]]})))))
+
+(rf/reg-event-fx
+ :efpfriends/force-refresh
+ (fn [{:keys [db]}]
+   (let [user-address (get-in db [:efp-friends :user-address])]
+     (when user-address
+       {:fx [[:dispatch [:efpfriends/fetch-following user-address {:fresh? true}]]]}))))
